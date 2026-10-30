@@ -119,7 +119,7 @@ namespace AIGeneratedCode
 
             // 添加必要的程序集引用（引用所有已加载的程序集）
             var references = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location)).GroupBy(a => a.GetName().Name).Select(g => g.First())
                 .Select(a => MetadataReference.CreateFromFile(a.Location))
                 .Cast<MetadataReference>()
                 .ToList();
