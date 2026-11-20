@@ -1,0 +1,37 @@
+name: Build commandset (Revit 2025 + 2026/2027)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - config: Release R25
+            year: '2025'
+          - config: Release R26
+            year: '2026'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Build ${{ matrix.config }}
+        run: dotnet build commandset/RevitMCPCommandSet.csproj -c "${{ matrix.config }}"
+      - name: Zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          $dll = Get-ChildItem commandset/bin -Recurse -Filter RevitMCPCommandSet.dll | Where-Object { $_.FullName -match [regex]::Escape("${{ matrix.config }}") } | Select-Object -First 1
+          if (-not $dll) { $dll = Get-ChildItem commandset/bin -Recurse -Filter RevitMCPCommandSet.dll | Select-Object -First 1 }
+          Write-Host "Packaging $($dll.FullName)"
+          Compress-Archive -Path "$($dll.DirectoryName)/*" -DestinationPath out/RevitMCPCommandSet-${{ matrix.year }}-sendcode-fix.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RevitMCPCommandSet-${{ matrix.year }}-sendcode-fix
+          path: out/*.zip
